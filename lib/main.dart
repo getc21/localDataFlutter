@@ -53,17 +53,27 @@ class _EventListPageState extends State<EventListPage> {
         itemCount: _events.length,
         itemBuilder: (context, index) {
           var event = _events[index];
-          return ListTile(
-            title: Text(event['name']),
-            subtitle: Text(event['description']),
-            onTap: () {
-              Navigator.push(
+          return Card(
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
                 context,
                 MaterialPageRoute(
                     builder: (context) =>
                         EventDetailPage(eventId: event['id'])),
               );
-            },
+              },
+              child: Container(
+                child: Column(
+                  children: [
+                    Text(event['name']),
+                    Text(event['description']),
+                    Text(event['location']),
+                    Text(event['time']),
+                    Text(event['date'])
+                  ],
+                ),
+              )),
           );
         },
       ),
@@ -190,7 +200,6 @@ class _AddEventPageState extends State<AddEventPage> {
                           'time': _timeController.text,
                           'date': _dateController.text,
                         };
-                        int eventId = await DatabaseHelper().insertEvent(event);
 
                         FilePickerResult? result =
                             await FilePicker.platform.pickFiles(
@@ -198,40 +207,38 @@ class _AddEventPageState extends State<AddEventPage> {
                           allowedExtensions: ['xlsx'],
                         );
 
-                        if (result != null) {
-                          await importGuestsFromExcel(
-                              result.files.single.path!, eventId);
-
-                          // Muestra el AlertDialog después de que se importen los invitados
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: Text(
-                                    '¿Deseas añadir el evento y la lista de invitados?'),
-                                actions: <Widget>[
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context)
-                                          .pop(); // Cierra el AlertDialog
-                                    },
-                                    child: Text('No'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      // Añadir código aquí para confirmar y añadir el evento y los invitados
-                                      Navigator.of(context)
-                                          .pop(); // Cierra el AlertDialog
-                                      Navigator.pop(
-                                          context); // Cierra la página actual
-                                    },
-                                    child: Text('Sí'),
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                        }
+                        // Muestra el AlertDialog después de que se importen los invitados
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text(
+                                  '¿Deseas añadir el evento y la lista de invitados?'),
+                              actions: <Widget>[
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context)
+                                        .pop(); // Cierra el AlertDialog
+                                  },
+                                  child: Text('No'),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    if (result != null) {
+                                      int eventId = await DatabaseHelper()
+                                          .insertEvent(event);
+                                      await importGuestsFromExcel(
+                                          result.files.single.path!, eventId);
+                                    }
+                                    Navigator.of(context).pop();
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text('Sí'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
                       }
                     },
                     icon: Icon(Icons.import_export),
@@ -246,6 +253,7 @@ class _AddEventPageState extends State<AddEventPage> {
     );
   }
 }
+
 
 class EventDetailPage extends StatefulWidget {
   final int eventId;
